@@ -37,7 +37,9 @@ def generate_answer(
     ) or "(Đây là câu hỏi đầu tiên.)"
 
     prompt = f"""Bạn là Trợ Lý Rô AI. Chỉ trả lời từ EVIDENCE bên dưới.
-Nếu evidence không đủ, trả lời: 'Tôi chưa tìm thấy đủ thông tin trong tài liệu đã chọn.'
+Nếu evidence không đủ, trả lời đúng câu: 'Tôi không tìm thấy thông tin này trong Knowledge Base.'
+Không được suy luận vượt evidence. Nếu Section 11 Amendments mâu thuẫn với section
+trước đó, ưu tiên Section 11 vì evidence nêu rõ đó là quy định ghi đè.
 LỊCH SỬ GẦN ĐÂY (chỉ để hiểu câu hỏi nối tiếp):
 {history_text}
 

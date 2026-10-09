@@ -24,6 +24,7 @@ class Settings:
     gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
     gemini_api_key: str | None = os.getenv("GEMINI_API_KEY")
     top_k: int = int(os.getenv("RAG_TOP_K", "4"))
+    evidence_min_score: float = float(os.getenv("RAG_EVIDENCE_MIN_SCORE", "0.45"))
     chunk_size: int = int(os.getenv("CHUNK_SIZE", "900"))
     chunk_overlap: int = int(os.getenv("CHUNK_OVERLAP", "150"))
     max_upload_mb: int = int(os.getenv("MAX_UPLOAD_MB", "20"))

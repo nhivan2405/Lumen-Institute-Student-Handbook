@@ -2,7 +2,7 @@
 
 > Hỏi tài liệu, Rô tìm giúp bạn.
 
-Ứng dụng hỏi đáp tài liệu cho bối cảnh học tập. Người dùng chọn tài liệu PDF/DOCX/PPTX/TXT, đặt câu hỏi bằng tiếng Việt và nhận câu trả lời có nguồn. Hệ thống dùng RAG (Retrieval-Augmented Generation): **truy xuất evidence trước, chỉ sau đó mới gọi Gemini để sinh câu trả lời**.
+Ứng dụng hỏi đáp tài liệu cho bối cảnh học tập và bài midterm **Build a RAG Chatbot**. Knowledge Base nộp bài là `data/documents/KB-A_Lumen-Institute-Student-Handbook.md`; người dùng đặt câu hỏi bằng tiếng Việt và nhận câu trả lời có nguồn. Hệ thống dùng RAG (Retrieval-Augmented Generation): **truy xuất evidence trước, chỉ sau đó mới gọi Gemini để sinh câu trả lời**.
 
 Đồ án **không train/fine-tune LLM**. Tài liệu được *index* thành vectors để truy xuất khi người dùng hỏi.
 
@@ -11,7 +11,7 @@
 - **Sinh viên:** chọn tài liệu, chat với Rô, xem nguồn và lịch sử hội thoại.
 - **Quản trị viên:** thêm, đổi tên, re-index, xóa tài liệu; xem trace retrieval để kiểm tra chất lượng trả lời.
 - **Closed-domain RAG:** thiếu evidence trong tài liệu đã chọn thì từ chối, không cố trả lời theo kiến thức ngoài KB.
-- Hỗ trợ PDF, DOCX, PPTX và TXT.
+- Hỗ trợ PDF, DOCX, PPTX, TXT và Markdown; Markdown Handbook giữ metadata Section thật khi chunking.
 
 `Sinh viên` và `Quản trị viên` hiện là **role mô phỏng giao diện** phục vụ demo. Đây chưa phải đăng nhập/RBAC bảo mật thật; triển khai thật phải xác thực người dùng và kiểm tra quyền tại mỗi API backend.
 
@@ -22,7 +22,7 @@ flowchart LR
     U["Sinh viên / Streamlit"] -->|"POST /api/chat"| API["FastAPI"]
     A["Quản trị viên / Streamlit"] -->|"Upload & quản lý KB"| API
     API --> I["Ingestion service"]
-    I --> L["Loader: PDF DOCX PPTX TXT"]
+    I --> L["Loader: PDF DOCX PPTX TXT Markdown"]
     L --> C["Chunking"]
     C --> E["multilingual-e5-small / local"]
     E --> Q["Qdrant Local"]
@@ -71,7 +71,7 @@ Sinh viên chọn tài liệu + gửi câu hỏi
 | PDF loader | PyMuPDF | Đọc PDF, giữ số trang |
 | DOCX loader | python-docx | Đọc Word |
 | PPTX loader | python-pptx | Đọc slide, giữ số slide |
-| Chunking | LangChain Text Splitters | Chia tài liệu thành chunks |
+| Chunking | LangChain RecursiveCharacterTextSplitter | `CHUNK_SIZE=900`, `CHUNK_OVERLAP=150`; không trộn section Markdown |
 | Embedding | `intfloat/multilingual-e5-small` | Tạo vector tiếng Việt/đa ngôn ngữ, chạy local |
 | Vector database | Qdrant Local | Lưu/tìm Top-K vectors |
 | Generation LLM | Gemini API | Sinh câu trả lời từ evidence |
@@ -167,6 +167,20 @@ Mở URL Streamlit hiện trong terminal, thường là `http://localhost:8501`.
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests -q -p no:cacheprovider
 ```
+
+### 7. Index Knowledge Base Lumen
+
+Đặt đúng file `KB-A_Lumen-Institute-Student-Handbook.md` trong `data/documents`, sau đó chạy:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\index_documents.py
+```
+
+Hoặc vào trang **Tài liệu của tôi** và chọn **Index thư mục documents**. Khi chat, chỉ chọn tài liệu Lumen READY. Trang **Kiểm tra câu trả lời** hiển thị câu hỏi retrieval, Top-K chunks, score, filename, Section, chunk ID và text thật.
+
+### Lưu ý kiểm chứng
+
+Test offline chỉ kiểm tra loader, metadata section và evidence gate. Index E5/Qdrant và generation Gemini cần chạy trong môi trường có E5 đã cache cùng `GEMINI_API_KEY` hợp lệ; không coi test mock/offline là bằng chứng hai dịch vụ đó hoạt động.
 
 ## Kịch bản demo trong 3–5 phút
 

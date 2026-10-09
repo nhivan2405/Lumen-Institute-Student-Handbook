@@ -12,7 +12,16 @@ class Evidence:
     score: float
     filename: str
     location: str
+    section: str
     chunk_id: str
+
+
+NO_EVIDENCE_MESSAGE = "Tôi không tìm thấy thông tin này trong Knowledge Base."
+
+
+def has_sufficient_evidence(retrieved: list[Evidence]) -> bool:
+    """Gate độc lập với Gemini; score cosine không phải xác suất câu trả lời đúng."""
+    return bool(retrieved) and max(item.score for item in retrieved) >= settings.evidence_min_score
 
 def answer_question(question: str, selected_document_ids: list[str], conversation_context: list[dict] | None = None) -> dict:
     """Điều phối một lượt RAG từ câu hỏi tới citation/answer.
@@ -29,15 +38,20 @@ def answer_question(question: str, selected_document_ids: list[str], conversatio
         retrieval_question = f"{recent} {question}".strip()
     query_vector = embedding_service.embed_query(retrieval_question)
     retrieved = [Evidence(text=item["text"], score=float(item["score"]), filename=item["filename"],
-                          location=item["location"], chunk_id=str(item["chunk_index"]))
+                          location=item["location"], section=item.get("section", item["location"]),
+                          chunk_id=str(item["chunk_index"]))
                  for item in VectorStore().search(query_vector, selected_document_ids, settings.top_k)]
-    if not retrieved:
-        return {"answer": "Tôi chưa tìm thấy đủ thông tin trong tài liệu đã chọn.", "citations": [],
+    if not has_sufficient_evidence(retrieved):
+        return {"answer": NO_EVIDENCE_MESSAGE, "citations": [],
                 "debug": {"embedding_model": settings.embedding_model, "top_k": settings.top_k,
-                          "retrieval_question": retrieval_question, "retrieved": []}}
+                          "evidence_min_score": settings.evidence_min_score,
+                          "retrieval_question": retrieval_question,
+                          "retrieved": [item.__dict__ for item in retrieved]}}
     context = "\n\n".join(item.text for item in retrieved)
-    citations = [{"filename": x.filename, "location": x.location, "chunk_id": x.chunk_id} for x in retrieved]
+    citations = [{"filename": x.filename, "location": x.location, "section": x.section,
+                  "chunk_id": x.chunk_id} for x in retrieved]
     return {"answer": generate_answer(question, context, conversation_context), "citations": citations,
             "debug": {"embedding_model": settings.embedding_model, "generation_model": settings.gemini_model,
-                      "top_k": settings.top_k, "retrieval_question": retrieval_question,
+                      "top_k": settings.top_k, "evidence_min_score": settings.evidence_min_score,
+                      "retrieval_question": retrieval_question,
                       "retrieved": [{**citation, "score": evidence.score, "text": evidence.text} for citation, evidence in zip(citations, retrieved)]}}

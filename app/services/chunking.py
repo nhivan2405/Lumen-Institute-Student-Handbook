@@ -27,6 +27,8 @@ def split_units(units: list[dict], document_id: str, filename: str) -> list[dict
         text = clean_text(unit["text"])
         for content in splitter.split_text(text):
             if len(content.strip()) >= 30:
+                section = unit.get("section", unit["location"])
                 chunks.append({"text": content, "document_id": document_id, "filename": filename,
-                               "location": unit["location"], "chunk_index": len(chunks)})
+                               "location": unit["location"], "section": section,
+                               "chunk_index": len(chunks)})
     return chunks

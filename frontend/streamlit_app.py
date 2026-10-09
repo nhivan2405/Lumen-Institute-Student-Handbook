@@ -206,7 +206,7 @@ def show_citations(citations: list[dict[str, Any]]) -> None:
     """Hiển thị citation từ metadata Qdrant; UI không tự tạo số trang/slide."""
     for citation in citations:
         st.caption(
-            f"Nguồn: {citation['filename']} · {citation['location']} "
+            f"Nguồn: {citation['filename']} · {citation.get('section', citation['location'])} "
             f"· chunk {citation['chunk_id']}"
         )
 
@@ -467,7 +467,7 @@ def render_chat_page() -> None:
 def render_documents_page() -> None:
     """Trang upload/index và registry Knowledge Base."""
     st.title("Quản trị Knowledge Base")
-    st.caption("Khu vực Admin: PDF/DOCX/PPTX/TXT → extract → chunk → E5 → Qdrant → READY.")
+    st.caption("Khu vực Admin: PDF/DOCX/PPTX/TXT/Markdown → extract → chunk → E5 → Qdrant → READY.")
 
     with st.container(border=True):
         st.subheader("Luồng Admin và User", icon=":material/account_tree:")
@@ -505,7 +505,7 @@ def render_documents_page() -> None:
                         )
                         load_documents.clear()
                         if not results:
-                            st.info("Thư mục data/documents chưa có PDF, DOCX, PPTX hoặc TXT.")
+                            st.info("Thư mục data/documents chưa có PDF, DOCX, PPTX, TXT hoặc Markdown.")
                         else:
                             ready_count = sum(item.get("status") == "READY" for item in results)
                             failed_count = sum(item.get("status") == "FAILED" for item in results)
@@ -517,7 +517,7 @@ def render_documents_page() -> None:
     with st.container(border=True):
         uploaded_file = st.file_uploader(
             "Chọn tệp để index",
-            type=["pdf", "docx", "pptx", "txt"],
+            type=["pdf", "docx", "pptx", "txt", "md"],
             max_upload_size=20,
             key="document_upload",
             help="Backend kiểm tra lại định dạng và dung lượng trước khi index.",
@@ -650,7 +650,7 @@ def render_debug_page() -> None:
             trace_rows = [
                 {
                     "Tên tài liệu": item["filename"],
-                    "Vị trí": item["location"],
+                "Section": item.get("section", item["location"]),
                     "Chunk": item["chunk_id"],
                     "Score": round(item["score"], 4),
                 }

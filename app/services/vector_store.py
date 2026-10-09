@@ -40,6 +40,8 @@ class VectorStore:
 
     def search(self, vector: list[float], document_ids: list[str], limit: int) -> list[dict]:
         """Tìm Top-K nhưng chỉ trong các document ID do người dùng chọn."""
+        if not self.client.collection_exists(COLLECTION):
+            return []
         document_condition = models.FieldCondition(
             key="document_id",
             match=models.MatchAny(any=document_ids),
