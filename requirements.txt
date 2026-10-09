@@ -1,0 +1,37 @@
+# ================================================================
+# DEPENDENCIES CỦA TRỢ LÝ RÔ AI
+# Cài trong .venv: pip install -r requirements.txt
+# ================================================================
+
+# --- UI và API ---
+# Streamlit: giao diện chat/upload/debug viết bằng Python.
+streamlit>=1.57,<2
+# FastAPI + Uvicorn: backend HTTP, validation và server chạy local.
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+# FastAPI cần package này để nhận UploadFile/form-data.
+python-multipart>=0.0.9,<1
+# Pydantic kiểm tra request/response schema trước khi vào service.
+pydantic>=2.8,<3
+
+# --- Đọc và chia tài liệu ---
+# PyMuPDF giữ text theo trang PDF; python-docx/PPTX giữ text tài liệu/slide.
+pymupdf>=1.24,<2
+python-docx>=1.1,<2
+python-pptx>=1.0,<2
+# Chỉ dùng module text splitters của LangChain, không kéo cả framework RAG.
+langchain-text-splitters>=0.3,<1
+
+# --- RAG: embedding và vector database ---
+# SentenceTransformers load multilingual-e5-small để tạo vector local.
+sentence-transformers>=3.0,<4
+# Qdrant Local lưu vector + metadata payload, tìm Top-K và filter document ID.
+qdrant-client>=1.11,<2
+
+# --- LLM generation ---
+# Google GenAI SDK gọi Gemini Flash-Lite từ backend; API key lấy qua .env.
+google-genai>=1.0,<2
+
+# --- Test ---
+# pytest chạy các kiểm thử chunking/RAG; không dùng để sinh dữ liệu demo giả.
+pytest>=8,<9

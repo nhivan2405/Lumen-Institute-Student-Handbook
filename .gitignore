@@ -1,0 +1,13 @@
+.venv/
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+pytest-cache-files-*/
+.idea/
+app.zip
+data/uploads/
+data/database/*.db
+data/qdrant/
+models/
+reports/*.json
