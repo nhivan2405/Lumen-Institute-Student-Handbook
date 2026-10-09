@@ -1,0 +1,5 @@
+[
+  {"id":"Q001","question":"Nội dung chính của tài liệu là gì?","expected_answer":"Tùy KB","expected_source":"Tài liệu index","expected_evidence":"Đoạn mở đầu","should_answer":true},
+  {"id":"Q002","question":"Thời tiết hôm nay thế nào?","expected_answer":"Từ chối","expected_source":"","expected_evidence":"","should_answer":false},
+  {"id":"Q003","question":"Nêu chi tiết không có trong tài liệu.","expected_answer":"Từ chối","expected_source":"","expected_evidence":"","should_answer":false}
+]
