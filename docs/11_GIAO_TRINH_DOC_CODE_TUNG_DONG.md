@@ -98,13 +98,13 @@ Khi thầy hỏi hàm này từ đâu ra, lần ngược mũi tên: UI gọi API
     @dataclass(frozen=True)
     class Settings:
         embedding_model: str = os.getenv("EMBEDDING_MODEL", "intfloat/multilingual-e5-small")
-        gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+        gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
         gemini_api_key: str | None = os.getenv("GEMINI_API_KEY")
 
 - dataclass tự sinh constructor.
 - frozen=True ngăn sửa config nhầm.
 - getenv lấy .env/environment trước, thiếu mới lấy default.
-- Runtime demo dùng GEMINI_MODEL=gemini-3.5-flash trong .env. Default trong source chỉ là fallback.
+- Runtime demo dùng GEMINI_MODEL=gemini-3.1-flash-lite trong .env. Default trong source chỉ là fallback.
 
     settings = Settings()
 

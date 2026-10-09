@@ -21,7 +21,7 @@ _load_env_file()
 class Settings:
     """Các giá trị runtime. API key chỉ được đọc ở backend, không gửi về Streamlit."""
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "intfloat/multilingual-e5-small")
-    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
     gemini_api_key: str | None = os.getenv("GEMINI_API_KEY")
     top_k: int = int(os.getenv("RAG_TOP_K", "4"))
     evidence_min_score: float = float(os.getenv("RAG_EVIDENCE_MIN_SCORE", "0.45"))

@@ -53,7 +53,7 @@ Streamlit → POST /api/chat → chat.py
 - `Settings` là `@dataclass(frozen=True)`: các thông số runtime chỉ đọc, như `embedding_model`, `gemini_model`, `top_k`, đường dẫn SQLite/Qdrant.
 - `settings = Settings()` là một object dùng chung, để model ID không bị viết rải rác.
 
-**Chỉ Gemini ở đâu:** `.env` có `GEMINI_MODEL=gemini-3.5-flash` → `settings.gemini_model` → `llm_service.py`. Giá trị mặc định trong source chỉ là phương án dự phòng nếu `.env` chưa có.
+**Chỉ Gemini ở đâu:** `.env` có `GEMINI_MODEL=gemini-3.1-flash-lite` → `settings.gemini_model` → `llm_service.py`. Giá trị mặc định trong source chỉ là phương án dự phòng nếu `.env` chưa có.
 
 ### `app/schemas.py` — kiểm tra request trước business logic
 
