@@ -1,4 +1,6 @@
 """Ranh giới generation inference: Gemini chạy trên hạ tầng Google qua API."""
+from dataclasses import dataclass
+import re
 from time import sleep
 
 from app.core.config import settings
@@ -7,6 +9,27 @@ from app.core.config import settings
 class LlmUnavailable(RuntimeError):
     """Lỗi có thể hiển thị cho người dùng mà không làm lộ lỗi provider thô."""
     pass
+
+
+@dataclass(frozen=True)
+class GenerationResult:
+    """Câu trả lời và các ID evidence do model chọn từ danh sách được cấp."""
+    answer: str
+    source_chunk_ids: list[str]
+
+
+def parse_generation_result(text: str) -> GenerationResult:
+    """Tách danh sách source ID khỏi output nhưng không tin metadata do model tự viết.
+
+    RAG service chỉ chấp nhận ID nào trùng payload Qdrant của lượt retrieval hiện
+    tại. Nhờ vậy model không thể tạo section, filename hay chunk ID mới.
+    """
+    match = re.search(r"(?im)^\s*SOURCE_CHUNK_IDS\s*:\s*(.*)$", text)
+    if not match:
+        return GenerationResult(answer=text.strip(), source_chunk_ids=[])
+    ids = re.findall(r"[A-Za-z0-9_-]+", match.group(1))
+    answer = (text[:match.start()] + text[match.end():]).strip()
+    return GenerationResult(answer=answer, source_chunk_ids=ids)
 
 
 def _is_temporary_provider_error(error: Exception) -> bool:
@@ -19,7 +42,7 @@ def generate_answer(
     question: str,
     evidence: str,
     conversation_context: list[dict] | None = None,
-) -> str:
+) -> GenerationResult:
     """Gửi đúng evidence Top-K, không gửi toàn bộ PDF hay API key ra UI.
 
     generate_content là vị trí generation inference. Chỉ được gọi sau evidence gate.
@@ -43,7 +66,12 @@ trước đó, ưu tiên Section 11 vì evidence nêu rõ đó là quy định g
 LỊCH SỬ GẦN ĐÂY (chỉ để hiểu câu hỏi nối tiếp):
 {history_text}
 
-EVIDENCE:\n{evidence}\n\nCÂU HỎI HIỆN TẠI: {question}"""
+EVIDENCE (mỗi đoạn có CHUNK_ID):\n{evidence}\n\nCÂU HỎI HIỆN TẠI: {question}
+
+Sau câu trả lời, thêm đúng một dòng ở cuối theo định dạng:
+SOURCE_CHUNK_IDS: id1, id2
+Chỉ liệt kê các CHUNK_ID thực sự hỗ trợ trực tiếp câu trả lời. Không liệt kê đoạn
+chỉ liên quan chung, và không tạo ID mới. Không tự viết section, filename hay citation."""
 
     # 503 là lỗi quá tải tạm thời phía Gemini. Retry ngắn giúp demo không hỏng
     # ngay khi provider có một spike; không retry các lỗi key/model sai.
@@ -53,7 +81,8 @@ EVIDENCE:\n{evidence}\n\nCÂU HỎI HIỆN TẠI: {question}"""
                 model=settings.gemini_model,
                 contents=prompt,
             )
-            return response.text or "Tôi chưa tạo được câu trả lời từ evidence."
+            text = response.text or "Tôi chưa tạo được câu trả lời từ evidence."
+            return parse_generation_result(text)
         except Exception as error:
             if not _is_temporary_provider_error(error):
                 raise LlmUnavailable(

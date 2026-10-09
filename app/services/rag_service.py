@@ -17,11 +17,35 @@ class Evidence:
 
 
 NO_EVIDENCE_MESSAGE = "Tôi không tìm thấy thông tin này trong Knowledge Base."
+UNVERIFIABLE_ANSWER_MESSAGE = "Tôi không thể xác minh nguồn cho câu trả lời này trong Knowledge Base."
 
 
 def has_sufficient_evidence(retrieved: list[Evidence]) -> bool:
     """Gate độc lập với Gemini; score cosine không phải xác suất câu trả lời đúng."""
     return bool(retrieved) and max(item.score for item in retrieved) >= settings.evidence_min_score
+
+
+def citations_from_supported_chunk_ids(retrieved: list[Evidence], supported_ids: list[str]) -> list[dict]:
+    """Tạo citation duy nhất từ payload Qdrant của những chunk model đã dùng.
+
+    `supported_ids` chỉ là lựa chọn; metadata hiển thị luôn lấy từ Evidence. ID lạ
+    hoặc chunk Top-K không được model chọn đều bị bỏ qua khỏi phần Chat.
+    """
+    allowed = set(supported_ids)
+    return [
+        {"filename": item.filename, "location": item.location, "section": item.section,
+         "chunk_id": item.chunk_id}
+        for item in retrieved if item.chunk_id in allowed
+    ]
+
+
+def answer_requires_verified_citation(answer: str, citations: list[dict]) -> str:
+    """Không để Chat hiển thị một khẳng định có vẻ đúng nhưng không có nguồn thật.
+
+    Câu từ chối là phản hồi an toàn, không phải một khẳng định kiến thức từ KB. Mọi
+    câu trả lời nội dung chỉ qua guard này khi ít nhất một citation Qdrant hợp lệ.
+    """
+    return answer if citations else UNVERIFIABLE_ANSWER_MESSAGE
 
 def answer_question(question: str, selected_document_ids: list[str], conversation_context: list[dict] | None = None) -> dict:
     """Điều phối một lượt RAG từ câu hỏi tới citation/answer.
@@ -47,11 +71,17 @@ def answer_question(question: str, selected_document_ids: list[str], conversatio
                           "evidence_min_score": settings.evidence_min_score,
                           "retrieval_question": retrieval_question,
                           "retrieved": [item.__dict__ for item in retrieved]}}
-    context = "\n\n".join(item.text for item in retrieved)
-    citations = [{"filename": x.filename, "location": x.location, "section": x.section,
-                  "chunk_id": x.chunk_id} for x in retrieved]
-    return {"answer": generate_answer(question, context, conversation_context), "citations": citations,
+    # ID trong context cho phép Gemini chọn evidence đã dùng; metadata citation vẫn
+    # được lấy lại từ retrieved payload, không tin section/filename model sinh ra.
+    context = "\n\n".join(f"[CHUNK_ID: {item.chunk_id}]\n{item.text}" for item in retrieved)
+    generated = generate_answer(question, context, conversation_context)
+    citations = citations_from_supported_chunk_ids(retrieved, generated.source_chunk_ids)
+    debug_citations = [{"filename": x.filename, "location": x.location, "section": x.section,
+                        "chunk_id": x.chunk_id} for x in retrieved]
+    return {"answer": answer_requires_verified_citation(generated.answer, citations), "citations": citations,
             "debug": {"embedding_model": settings.embedding_model, "generation_model": settings.gemini_model,
                       "top_k": settings.top_k, "evidence_min_score": settings.evidence_min_score,
                       "retrieval_question": retrieval_question,
-                      "retrieved": [{**citation, "score": evidence.score, "text": evidence.text} for citation, evidence in zip(citations, retrieved)]}}
+                      "used_chunk_ids": generated.source_chunk_ids,
+                      "retrieved": [{**citation, "score": evidence.score, "text": evidence.text}
+                                    for citation, evidence in zip(debug_citations, retrieved)]}}
