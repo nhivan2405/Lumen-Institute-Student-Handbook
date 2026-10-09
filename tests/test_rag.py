@@ -1,5 +1,6 @@
 """Test logic/offline; không khẳng định Gemini hoặc Qdrant đã chạy thật."""
 from pathlib import Path
+import runpy
 import pytest
 from app.services.chunking import clean_text, split_units
 from app.services.document_loader import extract_document
@@ -93,3 +94,8 @@ def test_answer_is_withheld_when_generation_has_no_verified_citation():
 def test_answer_is_returned_when_at_least_one_qdrant_citation_is_verified():
     citation = {"filename": "kb.md", "section": "5. Library", "chunk_id": "4"}
     assert answer_requires_verified_citation("Phí là 2.000 VND", [citation]) == "Phí là 2.000 VND"
+
+
+def test_index_script_can_import_project_package_when_run_as_a_script():
+    namespace = runpy.run_path("scripts/index_documents.py", run_name="index_script_test")
+    assert callable(namespace["main"])
